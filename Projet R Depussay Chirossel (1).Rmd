@@ -1,0 +1,345 @@
+---
+title: "La filière choisie pour le bacs as-t-elle une influence sur nos choix de vie?"
+author: "JB et Mathias"
+date: '2023'
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    number_section: no
+    theme: spacelab
+    df_print: paged
+    dev: png
+    keep_md: yes
+    standalone: yes
+  
+---
+
+```{r options_chunk, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.align = 'center')
+```
+
+```{r packages, warning = FALSE}
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(ggridges)
+library(forcats)
+library(patchwork)
+library(readr)
+library(dplyr)
+library(gridExtra)
+library(modelsummary)
+```
+
+```{r}
+
+data<-read.csv("data/sondage_version_finale.csv", 
+  header = TRUE, 
+  sep = ";", 
+  fileEncoding = "utf8")
+
+```
+
+
+# Problématique 
+
+Nous nous sommes posés la question de si les gens avaient des comportements similaires suivant leur choix d'orientation. Cela revient donc à se demander si les STMG sont tous des fumeurs alcoolique comme la légende le raconte ou si les gens sortis de S sont tous des enfants sages qui ne consomment ni alcool ni tabac. Pour cela nous nous sommes appuyés sur le questionnaire de cette année présenté dans la section ci-dessous.
+
+# Présentation du questionnaire
+
+À la rentrée 2023, un *sondage* via **Célène** sur des étudiantes et étudiants de Licence d'Économie et de L1 Gestion de l'[université de Tours](https://www.univ-tours.fr/).
+
+`r nrow(data)` individus ont répondu au sondage dont `r sum(data$Filière == "Économie")` en filière Économie, soit `r round(sum(data$Filière == "Économie")/nrow(data)*100, 1)`% des répondants et répondantes.
+`r sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "S")` en filière S, soit `r round(sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "S")/nrow(data)*100, 1)`% des répondants et répondantes.
+`r sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "ES")` en filière ES, soit `r round(sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "ES")/nrow(data)*100, 1)`% des répondants et répondantes.
+`r sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "STMG")` en filière STMG, soit `r round(sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "STMG")/nrow(data)*100, 1)`% des répondants et répondantes.
+`r sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "Autre bas sans spécialité")` en filière d'autre bac sans spécialité, soit `r round(sum(data$Filière.de.votre.bac.si.pas.de.spécialité == "Autre bas sans spécialité")/nrow(data)*100, 1)`% des répondants et répondantes
+
+Avec `r ncol(data)` questions, le questionnaire aborde des thèmes très variés : 
+
+* baccalauréat 
+  + filières ou spécialité, 
+  + date d'obtention, etc.,
+* outils numériques 
+  + système d'exploitation du téléphone, 
+  + de l'ordinateur, 
+* comportements, 
+* réseaux sociaux, 
+* culture générale,
+etc. 
+
+# Étude des répondants
+## Regroupement Fillière et spécialité
+Pour des questions de précision pour les test et pour une meilleurre lisibilité des tableaux nous avons décidé d'associer: 
+
+- Bac à fillière S avec les étudiants ayant passé un bac a spécialité et ayant choisit les spécialités "Maths NSI", "Maths", "Maths Physique", "Physique", "Maths NSI Physique". 
+
+- Bac à fillière ES avec les étudiants ayant passé un bac a spécialité et ayant choisi les spécialités "Maths SES", "SES", "SES HLP".
+
+- Bac à fillière STMG avec les étudiants ayant passé un bac a spécialité et ayant choisi les spécialités "SES GéoPo", "GéoPo Maths", "SES NSI".
+
+
+```{r création filière2}
+
+data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. <- ifelse(is.na(data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités.),0,data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités.)
+
+data$S <- ifelse((data$Filière.de.votre.bac.si.pas.de.spécialité =="S"
+|data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Mathématiques   Numérique et sciences informatiques"
+|data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Mathématiques"
+|data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Mathématiques   Physique-chimie"
+|data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Physique-chimie"
+|data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Mathématiques   Numérique et sciences informatiques   Physique-chimie"
+|data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Numérique et sciences informatiques"
+)
+,1,0)
+
+data$ES <- ifelse((data$Filière.de.votre.bac.si.pas.de.spécialité =="ES"
+                  |data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Sciences économiques et sociales"
+                  |data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Mathématiques   Sciences économiques et sociales"
+                  |data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Sciences économiques et sociales   Humanités, littérature et philosophie"
+)
+,1,0)
+
+data$STMG <- ifelse((data$Filière.de.votre.bac.si.pas.de.spécialité=="STMG"
+                     |data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Sciences économiques et sociales   Histoire-géographie, géopolitique et sciences politiques"
+                     |data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Mathématiques   Histoire-géographie, géopolitique et sciences politiques"
+                     |data$Enseignements.de.spécialité.en.terminale..si.bac.à.spécialités. =="Sciences économiques et sociales   Numérique et sciences informatiques"
+                     ),1,0)
+data <- data |> 
+  mutate(Filière2 = ifelse(S == 1, "S", ifelse(ES == 1, "ES", ifelse(STMG == 1, "STMG", "Autres"))))
+
+```
+
+```{r jb}
+
+ggplot(data) +
+  aes(x =fct_rev(fct_infreq(Filière2)),) +
+  geom_bar(fill = "skyblue2") + 
+  labs(title = "Tableau des répondants suivant leur fillière ou leur fillière assimilée", y = "Effectif", x = " ") +
+  theme_minimal() +
+  coord_flip()
+
+
+```
+
+## Réseaux sociaux
+
+Étude des répondants en fonction de leurs réseaux sociaux favoris.
+
+### Graphiques et Tableau
+
+```{r tab/graph réseaux socio}
+
+RS<-table(data$Filière2, data$Réseau.social.le.plus.utilisé)
+
+RS |> 
+   addmargins(FUN = list(TOTAL=sum)) |> 
+   kable( align = "c",
+    caption = "Réseaux sociaux les plus utilisés par les répondants") |> 
+   kable_styling(full_width = FALSE,
+  position = "center",
+  bootstrap_options = c("striped", "bordered"))
+
+jm3<- ggplot(data) + 
+  aes(x=Réseau.social.le.plus.utilisé) +
+  labs(title = "Répartition des réseaux sociaux favoris en fonction des filières", x="") +
+  geom_bar(fill= "skyblue2", alpha= 2) +
+  coord_flip()
+
+jm3 + facet_wrap(~Filière2)
+
+ggplot(data) +
+  aes(x = fct_infreq(Filière2),
+      fill = Réseau.social.le.plus.utilisé) +
+  geom_bar(width = 0.5) +
+  labs(title = "Répartition des réseaux sociaux favoris en fonction des filières", x = " ") +
+  theme_minimal()+theme(legend.direction = "vertical",
+        legend.position = "bottom", 
+        legend.key.size = unit(0.5, 'cm'),
+        legend.title = element_text(size=10),
+        legend.text = element_text(size=9),
+        legend.background = element_rect(fill = "lightgray"))+labs(fill="Réseaux Social le plus utilisés")
+
+```
+
+Le réseau social le plus utilisés dans chaque filière est Instagram avec `r sum(data$Réseau.social.le.plus.utilisé== "Instagram")` utilisateurs au total. On observe également que tiktok et snapchat sont utilisés dans les mêmes proportion peut importe la filière. Chez les personne ayant réalisé un bac S ou ceux ayant des options que nous avons assimilé à des bac S utilisent d'avantage twitter que les autres. Twitter correspond à `r round((sum(data$Filière2 == "S" & data$Réseau.social.le.plus.utilisé=="Twitter")/sum(data$Filière2=="S"))*100,1)` % pour les S alors qu'ils correspond à `r round((sum(data$Filière2 == "ES" & data$Réseau.social.le.plus.utilisé=="Twitter")/sum(data$Filière2=="ES"))*100,1)`% pour ES `r round((sum(data$Filière2 == "STMG" & data$Réseau.social.le.plus.utilisé=="Twitter")/sum(data$Filière2=="STMG"))*100,1)`% pour STMG et`r round((sum(data$Filière2 == "Autres" & data$Réseau.social.le.plus.utilisé=="Twitter")/sum(data$Filière2=="Autres"))*100,1)` % pour Autres.
+
+### Test statistique
+
+On pose deux hypothèses : La première, HO signifiant que les résultats ne sont pas significatifs et la deuxième H1 signifiant que les résultats sont significatifs.
+
+Effectuons le test :
+
+```{r test RS}
+TRS<-chisq.test(RS)
+print(TRS)
+```
+
+Ici, nous avons un alpha (probabilité d'une erreur de type 1) qui est de 5%.
+
+La pvalue est supérieure à 0.05, donc nous pouvons dire que nous conservons H0 donc le test n'est significatif. Avec nos résultats, nous pouvons conclure que la filière choisie au bac n'a pas d'impact sur les réseaux sociaux que les élèves utilisent.
+
+## Fumer
+
+Étude des répondants en fonction de leurs habitudes liées au tabac.
+
+### Graphiques et tableau
+```{r jb fumer}
+
+Fumer<-table(data$Filière2, data$Fumez.vous.du.tabac..)
+
+Fumer |> 
+   addmargins(FUN = list(TOTAL=sum)) |> 
+   kable( align = "c",
+    caption = "Fumez vous du tabac") |> 
+   kable_styling(full_width = FALSE,
+  position = "center",
+  bootstrap_options = c("striped", "bordered"))
+
+
+jm<- ggplot(data) + 
+  aes(x= Fumez.vous.du.tabac..) +
+  labs(title = "Répartition des fumeurs en fonction des filières", x="") +
+  geom_bar(fill= "skyblue2", alpha= 2) +
+  coord_flip()
+
+jm + facet_wrap(~Filière2)
+
+ggplot(data) +
+  aes(x = Filière2,
+      fill = Fumez.vous.du.tabac..) +
+  geom_bar(width = 0.5, position = "fill") +
+  theme_minimal() + 
+  labs(title = "Répartition des fumeurs en fonction des filières", x="") +
+  theme(legend.direction = "vertical",
+        legend.position = "bottom", 
+        legend.key.size = unit(0.5, 'cm'),
+        legend.title = element_text(size=10),
+        legend.text = element_text(size=9),
+        legend.background = element_rect(fill = "lightgray"))+labs(fill="Consommation de tabac")
+
+```
+
+Pour toutes les fillières les étudiants ont en majorité repondu "non et je n'ai jamais vraiment fumé", cela correspond à `r round((sum(data$Fumez.vous.du.tabac.. =="Non et je n'ai jamais vraiment fumé")/nrow(data))*100,1)`% des répondants au sondage. `r round((sum(data$Filière2 == "S" & data$Fumez.vous.du.tabac..=="Non et je n'ai jamais vraiment fumé")/sum(data$Filière2=="S"))*100,1)`% des S ont répondu ne pas fumer,`r round((sum(data$Filière2 == "ES" & data$Fumez.vous.du.tabac..=="Non et je n'ai jamais vraiment fumé")/sum(data$Filière2=="ES"))*100,1)` % des ES, `r round((sum(data$Filière2 == "STMG" & data$Fumez.vous.du.tabac..=="Non et je n'ai jamais vraiment fumé")/sum(data$Filière2=="STMG"))*100,1)`% des STMG et `r round((sum(data$Filière2 == "Autres" & data$Fumez.vous.du.tabac..=="Non et je n'ai jamais vraiment fumé")/sum(data$Filière2=="Autres"))*100,1)` % des Autres. Les S sont les seuls à avoir une part significative de fumeurs réguliers `r round((sum(data$Filière2 == "S" & data$Fumez.vous.du.tabac..=="Oui, régulièrement")/sum(data$Fumez.vous.du.tabac..=="Oui, régulièrement"))*100,1)`% de la pop total de fumeurs réguliers. Et ilq sont également les seuls à ne pas avoir de fumeurs qui ont arrêté. 
+
+### Test statistique
+
+On pose deux hypothèses : La première, HO signifiant que les résultats ne sont pas significatifs et la deuxième H1 signifiant que les résultats sont significatifs.
+
+Effectuons le test :
+
+```{r test fumer}
+Tfumer<-chisq.test(Fumer)
+print(Tfumer)
+```
+
+Ici, nous avons un test avec un alpha (probabilité d'une erreur de type 1) qui est de 5%.
+
+La pvalue est inférieure à 0.05, donc nous pouvons dire que nous rejettons H0 donc le test est significatif. Avec nos résultats, nous pouvons conclure que la filière choisie au bac a un impact sur le tabagisme.
+
+## Boire
+
+Étude des répondants en fonction de leurs habitudes avec l'alcool.
+
+### Graphiques et tableau
+```{r graph/tab boire}
+
+Boire<-table(data$Filière2, data$Rythme.de.consommation.d.alcool)
+Boire <- Boire[, c("Jamais","Moins d'une fois par mois", "Moins d'une fois par semaine", "Environ une fois par semaine","Plusieurs fois par semaine")]
+
+Boire |> 
+   addmargins(FUN = list(TOTAL=sum)) |> 
+   kable( align = "c",
+    caption = "Rythme de consommation d'alcool") |> 
+   kable_styling(full_width = FALSE,
+  position = "center",
+  bootstrap_options = c("striped", "bordered"))
+
+jm2<- ggplot(data) + 
+  aes(x=Rythme.de.consommation.d.alcool) +
+  geom_bar(fill= "skyblue2", alpha= 2) +
+   labs(title = "Répartition des la consomation d'alcool en fonction des filières", x="") +
+  coord_flip()
+
+jm2 + facet_wrap(~Filière2)
+
+ggplot(data) +
+  aes(x = Filière2,
+      fill = Rythme.de.consommation.d.alcool) +
+  geom_bar(width = 0.5, position = "fill") +
+  theme_minimal() + 
+  labs(title = "Répartition des la consomation d'alcool en fonction des filières", x="") +
+  theme(legend.direction = "vertical",
+        legend.position = "bottom", 
+        legend.key.size = unit(0.5, 'cm'),
+        legend.title = element_text(size=10),
+        legend.text = element_text(size=9),
+        legend.background = element_rect(fill = "lightgray"))+labs(fill="Rythme de consommation d'alcool")
+```
+
+Pour toutes les fillières la répartition de la consommation d'alcool est assez similaire. Nous pouvons remarquer que globalement, les étudiants ne boivent jamais, ce qui représente `r round((sum(data$Rythme.de.consommation.d.alcool=="Jamais")/nrow(data))*100,1)`% des répondants au sondage. `r round((sum(data$Filière2 == "S" & data$Rythme.de.consommation.d.alcool=="Jamais")/sum(data$Filière2=="S"))*100,1)`% des S ont répondu ne jamais boire,`r round((sum(data$Filière2 == "ES" & data$Rythme.de.consommation.d.alcool=="Jamais")/sum(data$Filière2=="ES"))*100,1)` % des ES, `r round((sum(data$Filière2 == "STMG" & data$Rythme.de.consommation.d.alcool=="Jamais")/sum(data$Filière2=="STMG"))*100,1)`% des STMG et `r round((sum(data$Filière2 == "Autres" & data$Rythme.de.consommation.d.alcool=="Jamais")/sum(data$Filière2=="Autres"))*100,1)` % des Autres.Les STMG ce démarquent avec la plus grande proportion de 1 fois par semaine. Et la catégorie Autres ce débarquent avec la plus grande proportion de jamais. 
+
+### Test Statistique
+
+On pose deux hypothèses : La première, HO signifiant que les résultats ne sont pas significatifs et la deuxième H1 signifiant que les résultats sont significatifs.
+
+Effectuons le test :
+
+```{r test boire}
+TBoire<-chisq.test(Boire)
+print(TBoire)
+```
+
+Ici, nous avons un test avec un alpha (probabilité d'une erreur de type 1) qui est de 5%.
+
+La pvalue est supérieure à 0.05, donc nous pouvons dire que nous conservons H0 donc le test n'est significatif. Avec nos résultats, nous pouvons conclure que la filière choisie au bac n'a pas d'impact sur le rythme de consommation d'alcool.
+
+
+### Test d'indépendance
+Automatisons les tests du dataframe avec une fonction permettant de donner le minimum de l'effectif théorique, la p-value ainsi que la conclusion en fonction de la p-value.
+```{r test indépendance}
+
+Habitude <- c(14,15,25)
+
+kable_plus <- function(tab, transp = FALSE, ...){
+  if(transp == TRUE){tab <- t(tab)}
+  tab |> 
+    kable(
+      align = "c",
+      ...
+    ) |> 
+    kable_styling(
+      full_width = FALSE,
+      position = "center",
+      bootstrap_options = c("hover")
+    ) 
+}
+
+
+indep.test.auto <- function(x, y, ...){
+  test <- chisq.test(x, y, ...)
+  output <- c(min(test$expected),  test$p.value)
+  names(output) <- c("min. eff.théo", "p-value")
+  
+  if (test$p.value > 0.05) {
+    output <- c(output, "On conserve H0. Les résultats ne sont pas significatifs.")
+  } else {
+    output <- c(output, "On rejette H0. Les résultats sont significatifs.")
+  }
+  
+  return(output)
+}
+
+
+Habitude <- c(14,15,25)
+
+sapply(data[,Habitude], FUN = indep.test.auto, 
+       y = data$Filière2) |> 
+  kable_plus(transp = TRUE,
+             caption = "Test d'indépendance vis-à-vis de la filière")
+```
+
