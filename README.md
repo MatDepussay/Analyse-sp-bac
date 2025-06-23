@@ -35,7 +35,7 @@ Le jeu de données provient d’un **questionnaire anonyme** administré à la r
 
 Le projet utilise les packages suivants :
 
-
+```r
 library(knitr)
 library(kableExtra)
 library(ggplot2)
@@ -46,7 +46,7 @@ library(readr)
 library(dplyr)
 library(gridExtra)
 library(modelsummary)
-
+```
 
 ## **🛠 Traitement des données**
 
